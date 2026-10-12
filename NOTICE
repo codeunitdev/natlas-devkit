@@ -1,0 +1,13 @@
+N-ATLaS DevKit
+Copyright (c) 2026 CodeUnit Technologies Limited
+
+The DevKit source code is licensed under the MIT Licence (see LICENSE).
+
+This software loads and runs the N-ATLaS model (https://huggingface.co/NCAIR1/N-ATLaS),
+which is NOT distributed with this repository and is governed by the N-ATLaS Terms of Use.
+
+N-ATLaS is an initiative of the Federal Ministry of Communications, Innovation and
+Digital Economy, and powered by Awarri Technologies.
+
+Users of this DevKit must comply with the N-ATLaS Terms of Use, including attribution,
+the active end-user cap, and the acceptable-use restrictions.

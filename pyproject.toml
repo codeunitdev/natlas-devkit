@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "natlas-devkit"
+version = "0.1.0"
+description = "SDK, OpenAI-compatible API server and playground for N-ATLaS, Nigeria's open multilingual LLM"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "CodeUnit Technologies Limited" }]
+keywords = ["n-atlas", "llm", "nigeria", "hausa", "yoruba", "igbo", "nlp"]
+dependencies = [
+    "torch",
+    "transformers>=4.43",
+    "accelerate",
+    "huggingface_hub",
+]
+
+[project.optional-dependencies]
+quant = ["bitsandbytes>=0.43"]
+server = ["fastapi>=0.100", "uvicorn>=0.23", "pydantic>=2"]
+playground = ["gradio>=4.40"]
+all = ["bitsandbytes>=0.43", "fastapi>=0.100", "uvicorn>=0.23", "pydantic>=2", "gradio>=4.40"]
+dev = ["pytest", "httpx", "fastapi>=0.100", "pydantic>=2"]
+
+[project.scripts]
+natlas = "natlas.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/codeunitdev/natlas-devkit"
+Model = "https://huggingface.co/NCAIR1/N-ATLaS"
+
+[tool.setuptools]
+packages = ["natlas"]

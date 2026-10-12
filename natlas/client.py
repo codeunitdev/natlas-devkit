@@ -20,9 +20,8 @@ from typing import Any, Dict, Iterator, List, Optional
 DEFAULT_MODEL_ID = "NCAIR1/N-ATLaS"
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a helpful, friendly assistant built on N-ATLaS. "
-    "Reply in the same language as the user's message (Hausa, Yoruba, Igbo "
-    "or English) unless the user asks for a different language."
+    "You are a helpful, friendly assistant built on N-ATLaS, Nigeria's "
+    "multilingual language model. Answer accurately and concisely."
 )
 
 LANGUAGES: Dict[str, str] = {
@@ -74,6 +73,55 @@ def resolve_language(language: Optional[str]) -> Optional[str]:
     )
 
 
+_CHARS = {
+    "Hausa": set("ɗƙƴɓƊƘƳƁ"),
+    "Yoruba": set("ṣẹṢẸ"),
+    "Igbo": set("ụịṅỤỊṄ"),
+}
+_WORDS = {
+    "Hausa": {"menene", "mene", "yaya", "kake", "kike", "wannan", "shin", "sannu",
+              "ake", "nufi", "yadda", "saboda", "kuma", "akwai", "abinci", "ina"},
+    "Yoruba": {"bawo", "kini", "se", "mo", "emi", "lati", "ati", "fun", "ti",
+               "je", "ara", "mi", "awon", "eyi", "omo", "ilera", "ki", "ni",
+               "arun", "ami", "naa", "bi", "nipa"},
+    "Igbo": {"kedu", "gini", "nke", "bu", "ndi", "ihe", "onwe", "maka", "olee",
+             "ebee", "esi", "chebe", "oria", "m", "nwere", "anyi"},
+}
+
+
+def detect_language(text: str) -> Optional[str]:
+    """Best-effort guess: 'Hausa', 'Yoruba', 'Igbo', or None (English/unknown).
+
+    Uses language-specific letters (strong signal) and common words. Used to pin
+    the reply language, because the model can otherwise drift into another
+    Nigerian language (e.g. answering a Yoruba question in Hausa).
+    """
+    import re
+    import unicodedata
+
+    if not text:
+        return None
+    scores = {lang: 3 * sum(ch in chars for ch in text) for lang, chars in _CHARS.items()}
+    plain = "".join(
+        c for c in unicodedata.normalize("NFD", text.lower()) if unicodedata.category(c) != "Mn"
+    )
+    for word in re.findall(r"[a-z]+", plain):
+        for lang, words in _WORDS.items():
+            if word in words:
+                scores[lang] += 1
+    best = max(scores, key=scores.get)
+    ranked = sorted(scores.values(), reverse=True)
+    if ranked[0] >= 2 and ranked[0] > ranked[1]:
+        return best
+    return None
+
+
+def system_prompt_for(text: str, base: str = DEFAULT_SYSTEM_PROMPT) -> str:
+    """Base system prompt plus an explicit reply-language instruction when detectable."""
+    lang = detect_language(text)
+    return base + (f" Always reply in {lang}, the language of the user's message." if lang else "")
+
+
 def normalize_messages(
     messages: List[Message], system_prompt: Optional[str] = DEFAULT_SYSTEM_PROMPT
 ) -> List[Message]:
@@ -90,7 +138,8 @@ def normalize_messages(
             raise ValueError("message content must be a string")
         cleaned.append({"role": role, "content": content})
     if system_prompt and cleaned[0]["role"] != "system":
-        cleaned.insert(0, {"role": "system", "content": system_prompt})
+        last_user = next((m["content"] for m in reversed(cleaned) if m["role"] == "user"), "")
+        cleaned.insert(0, {"role": "system", "content": system_prompt_for(last_user, system_prompt)})
     return cleaned
 
 
@@ -253,6 +302,8 @@ class NAtlas:
         lang = resolve_language(language)
         if lang:
             sys_prompt += f" Always reply in {lang}."
+        elif not system:
+            sys_prompt = system_prompt_for(prompt, sys_prompt)
         messages = [
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": prompt},

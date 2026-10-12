@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from .client import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, LANGUAGES
+from .client import ATTRIBUTION, DEFAULT_SYSTEM_PROMPT, LANGUAGES, system_prompt_for
 
 LANGUAGE_CHOICES = ["Auto (match my language)"] + list(LANGUAGES.values())
 
@@ -23,10 +23,10 @@ EXAMPLES = [
 ]
 
 
-def _system_prompt(language: str) -> str:
+def _system_prompt(language: str, message: str) -> str:
     if language in LANGUAGES.values():
         return DEFAULT_SYSTEM_PROMPT + f" Always reply in {language}."
-    return DEFAULT_SYSTEM_PROMPT
+    return system_prompt_for(message)  # Auto: detect from the user's message
 
 
 def build_demo(engine: Optional[Any] = None):
@@ -47,7 +47,7 @@ def build_demo(engine: Optional[Any] = None):
             yield history, ""
             return
         history = list(history or []) + [{"role": "user", "content": message}]
-        convo = [{"role": "system", "content": _system_prompt(language)}] + [
+        convo = [{"role": "system", "content": _system_prompt(language, message)}] + [
             {"role": h["role"], "content": h["content"]} for h in history
         ]
         history.append({"role": "assistant", "content": ""})

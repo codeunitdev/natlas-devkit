@@ -113,3 +113,26 @@ def test_resolve_language():
     assert resolve_language(None) is None
     with pytest.raises(ValueError):
         resolve_language("french")
+
+
+from natlas.client import detect_language, system_prompt_for
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("menene ake nufi da gwagwarmaya", "Hausa"),
+    ("Yaya zan kare kaina daga zazzaɓin cizon sauro?", "Hausa"),
+    ("Báwo ni mo ṣe lè dáàbò bo ara mi lọ́wọ́ ibà?", "Yoruba"),
+    ("Kí ni àwọn àmì àrùn ibà?", "Yoruba"),
+    ("Kedu ka m ga-esi chebe onwe m pụọ n'ọrịa ịba?", "Igbo"),
+    ("Gịnị bụ ihe mgbaàmà nke ịba?", "Igbo"),
+    ("Explain in simple terms how a farmer can save money.", None),
+    ("", None),
+])
+def test_detect_language(text, expected):
+    assert detect_language(text) == expected
+
+
+def test_default_system_prompt_pins_reply_language():
+    msgs = normalize_messages([{"role": "user", "content": "Báwo ni mo ṣe lè dáàbò bo ara mi lọ́wọ́ ibà?"}])
+    assert "Always reply in Yoruba" in msgs[0]["content"]
+    assert "Always reply" not in system_prompt_for("What is malaria?")
